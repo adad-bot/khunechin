@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 96 96" role="img" aria-label="خونه‌چین">
+  <rect width="96" height="96" rx="22" fill="#285542"/>
+  <g fill="none" stroke="#F2ECE0" stroke-width="3.4" stroke-linecap="round">
+    <path d="M26 78 L26 28 Q26 24 30 24 L66 24 Q70 24 70 28 L70 46"/>
+    <path d="M70 62 L70 70 Q70 74 66 74"/>
+    <path d="M32 78 L58 78"/>
+  </g>
+  <g fill="#F2ECE0">
+    <rect x="32" y="52" width="24" height="10" rx="5"/>
+    <rect x="46" y="40" width="10" height="22" rx="5"/>
+  </g>
+</svg>

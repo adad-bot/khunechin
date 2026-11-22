@@ -1,0 +1,8 @@
+{
+  "appId": "ir.khunechin.app",
+  "appName": "خونه‌چین",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  }
+}
