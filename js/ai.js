@@ -171,14 +171,49 @@
     return 'تولید تصویر انجام نشد: ' + msg.slice(0, 120);
   };
 
+  /** اگر پروژه عکس واقعی ندارد، صحنهٔ نمونه را به تصویر تبدیل می‌کند تا مدل چیزی برای ویرایش داشته باشد */
+  function sceneToPhoto(project) {
+    return new Promise((resolve, reject) => {
+      const svg = K.Art.scene({
+        roomW: project.room.w,
+        roomD: project.room.d,
+        items: project.items,
+        light: 0.95,
+        uid: 'aiscene' + Date.now().toString(36),
+      });
+      const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = 1024;
+        c.height = 768;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#F7F4ED';
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', 0.9));
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('عکس اصلی برای ویرایش آماده نشد.'));
+      };
+      img.src = url;
+    });
+  }
+
+  AI.scenePhoto = sceneToPhoto;
+
   /** ساخت تصویر تازه از عکس اتاق. ورودی و خروجی dataURL. */
   AI.generate = async function (project, opts) {
     const o = opts || {};
     const cfg = AI.config();
     if (!cfg.key) throw Object.assign(new Error('no key'), { code: 'nokey' });
     const prompt = o.prompt || AI.buildPrompt(project, o.extra);
-    const before = o.image || (project.photos.find((p) => p.kind === 'main') || {}).dataUrl;
-    if (!before) throw new Error('عکس اصلی برای ویرایش موجود نیست.');
+    const main = (project.photos || []).find((p) => p.kind === 'main') || {};
+    let before = o.image || main.dataUrl;
+    if (!before) before = await sceneToPhoto(project);
 
     if (cfg.provider === 'openai') return generateOpenAI(cfg, prompt, before);
     if (cfg.provider === 'openrouter') return generateOpenRouter(cfg, prompt, before);

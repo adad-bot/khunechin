@@ -43,8 +43,13 @@
   };
 
   UI.back = function (fallback) {
+    const target = fallback || '#/home';
+    const before = location.hash;
     if (history.length > 1) history.back();
-    else UI.go(fallback || '#/home');
+    // اگر برگشت تاریخی چیزی را عوض نکرد، حتماً به مقصد مشخص برو
+    setTimeout(() => {
+      if (location.hash === before) UI.go(target);
+    }, 140);
   };
 
   UI.refresh = function () {
@@ -74,6 +79,19 @@
       out = { html: '<div class="content"><div class="empty">خطا در نمایش این صفحه.<br><small>' + (err && err.message) + '</small></div></div>' };
     }
     root.innerHTML = out.html;
+    // دکمهٔ خانه همیشه در نوار بالا باشد
+    const tb = root.querySelector('.topbar');
+    if (tb) {
+      const side = tb.querySelector('.tb-side');
+      if (side && !side.querySelector('[data-go="#/home"]')) {
+        const b = document.createElement('button');
+        b.className = 'iconbtn';
+        b.setAttribute('data-go', '#/home');
+        b.setAttribute('aria-label', 'خانه');
+        b.innerHTML = K.Art.icon('home', 19);
+        side.insertBefore(b, side.firstChild);
+      }
+    }
     const scr = root.querySelector('.screen');
     if (scr) scr.setAttribute('data-screen', name);
     const content = root.querySelector('.content');
@@ -174,7 +192,10 @@
     return `<header class="topbar">
       ${opts.back === false ? '' : `<button class="iconbtn" data-back aria-label="بازگشت">${A.icon('back', 21)}</button>`}
       ${opts.brand ? `<div class="brandbar">${A.logo(30, { radius: 9 })}<div>${D.app.name}<small>${opts.sub || D.app.version}</small></div></div>` : `<div class="tb-title">${opts.title || ''}</div>`}
-      <div class="tb-side">${opts.action || ''}</div>
+      <div class="tb-side">
+        ${opts.action || ''}
+        ${opts.home === false ? '' : `<button class="iconbtn" data-go="#/home" aria-label="خانه">${A.icon('home', 20)}</button>`}
+      </div>
     </header>`;
   };
 

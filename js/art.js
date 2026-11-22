@@ -89,7 +89,7 @@
     const curtainLo = curtainLight ? '#DDCBA8' : '#7C5A3B';
     const rugMotif = rug ? '#9E3B2E' : '#9E3B2E';
 
-    return `<svg viewBox="0 0 800 600" class="scene-svg" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="نمای پذیرایی">
+    return `<svg viewBox="0 0 800 600" width="800" height="600" class="scene-svg" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="نمای پذیرایی">
       <defs>
         <linearGradient id="${uid}-wall" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stop-color="#F4ECDD"/><stop offset="1" stop-color="#E4D7C1"/>
