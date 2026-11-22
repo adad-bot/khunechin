@@ -38,6 +38,10 @@
     const after = UI.sceneHtml(demo, scheme, 'wc-after', { ghosts: true });
     const html = `<div class="screen">
       <div class="content">
+        <div style="display:flex;justify-content:flex-start;gap:8px;padding-top:6px">
+          <button class="chip" data-go="#/ai">${A.icon('spark', 16)} هوش مصنوعی</button>
+          <button class="chip" data-go="#/account">${A.icon('user', 16)} حساب من</button>
+        </div>
         <div class="hero-brand">
           ${A.logo(76, { radius: 22 })}
           <h1>خونه‌چین</h1>
