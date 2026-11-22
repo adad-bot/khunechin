@@ -60,10 +60,13 @@
         <button class="btn ghost small mt-8" data-ai-remove>حذف تصویر و بازگشت به طرح شماتیک</button>
       </div>`;
     }
+    const hasPhoto = !!((p.photos || []).find((x) => x.kind === 'main' && x.dataUrl));
     return `<div class="card mt-12">
       <div class="card-title">${A.icon('spark', 18)} تصویر واقعی از این اتاق</div>
-      <p class="sub mt-4">${AI.provider().name} آماده است. با زدن دکمه، عکس اتاق و خواستهٔ تو فرستاده می‌شود و تصویر تازه برمی‌گردد.</p>
-      <button class="btn mt-8" data-ai-run>ساخت تصویر با ${UI.esc(AI.provider().name)}</button>
+      <p class="sub mt-4">${hasPhoto ? 'با زدن دکمه، عکس اتاق و خواستهٔ تو به ' + AI.provider().name + ' می‌رود و تصویر تازه برمی‌گردد.' : 'این پروژه عکس واقعی ندارد. عکس اتاق را از گالری انتخاب کن تا تصویر با هوش مصنوعی ساخته شود.'}</p>
+      <input type="file" accept="image/*" id="aiPhoto" hidden />
+      ${hasPhoto ? `<button class="btn mt-8" data-ai-run>ساخت تصویر با ${UI.esc(AI.provider().name)}</button>` : ''}
+      <button class="btn ${hasPhoto ? 'secondary' : ''} mt-8" data-ai-photo>${hasPhoto ? 'استفاده از عکس دیگر' : 'انتخاب عکس اتاق'}</button>
     </div>`;
   }
 
@@ -425,6 +428,32 @@
           });
         const aiHelp = root.querySelector('[data-ai-help]');
         if (aiHelp) aiHelp.addEventListener('click', () => aiHelpSheet());
+        const photoBtn = root.querySelector('[data-ai-photo]');
+        const photoInput = root.querySelector('#aiPhoto');
+        if (photoBtn && photoInput) {
+          photoBtn.addEventListener('click', () => photoInput.click());
+          photoInput.addEventListener('change', async () => {
+            const f = photoInput.files[0];
+            if (!f) return;
+            UI.toast('عکس در حال آماده‌سازی…');
+            try {
+              const raw = await new Promise((resolve, reject) => {
+                const fr = new FileReader();
+                fr.onload = () => resolve(fr.result);
+                fr.onerror = reject;
+                fr.readAsDataURL(f);
+              });
+              const img = await K.AI.shrink(raw, 1100, 0.85);
+              p.photos = [{ id: 'ph_' + Date.now().toString(36), kind: 'main', dataUrl: img, w: 0, h: 0, quality: { label: 'خوب' }, rotated: 0, at: S.now() }].concat(
+                (p.photos || []).filter((x) => x.kind !== 'main')
+              );
+              S.touch(p);
+              runAI();
+            } catch (e) {
+              UI.toast('خواندن عکس ناموفق بود.');
+            }
+          });
+        }
         const copyRaw = root.querySelector('[data-copy-raw]');
         if (copyRaw)
           copyRaw.addEventListener('click', async () => {
