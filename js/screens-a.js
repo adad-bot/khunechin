@@ -394,6 +394,7 @@
         </div>
         <div class="card mt-12" style="padding:4px 14px">
           <div class="row" style="cursor:default"><div class="ico-lead">${A.icon('sun', 18)}</div><div class="row-main"><div class="row-title">نوشتهٔ بزرگ</div><div class="row-sub">اندازهٔ متن را بزرگ‌تر می‌کند</div></div><button class="switch ${st.settings.bigText ? 'is-on' : ''}" data-bigtext aria-label="نوشتهٔ بزرگ"></button></div>
+          <div class="row" data-ai><div class="ico-lead">${A.icon('spark', 18)}</div><div class="row-main"><div class="row-title">تصویر با هوش مصنوعی</div><div class="row-sub">${K.AI.ready() ? 'کلید وصل است · ' + K.AI.provider().name : 'برای تغییر واقعی عکس، کلید وصل کن'}</div></div><div class="row-side">${K.AI.ready() ? '<span class="badge ok">وصل</span>' : '<span class="badge warn">وصل نیست</span>'}</div></div>
           <div class="row" data-privacy><div class="ico-lead">${A.icon('lock', 18)}</div><div class="row-main"><div class="row-title">حریم خصوصی و نگهداری داده</div></div><div class="row-side">${A.icon('next', 18)}</div></div>
           <div class="row" data-ops><div class="ico-lead">${A.icon('grid', 18)}</div><div class="row-main"><div class="row-title">پنل عملیات (داخلی)</div><div class="row-sub">سفارش‌ها، بازبینی و پرداخت</div></div><div class="row-side">${A.icon('next', 18)}</div></div>
           <div class="row" data-pilot><div class="ico-lead">${A.icon('ruler', 18)}</div><div class="row-main"><div class="row-title">پایلوت و اندازه‌گیری</div><div class="row-sub">قیف استفاده و خروجی CSV</div></div><div class="row-side">${A.icon('next', 18)}</div></div>
@@ -428,6 +429,7 @@
         root.querySelector('[data-restore]').addEventListener('click', restoreSheet);
         root.querySelector('[data-support]').addEventListener('click', () => UI.go('#/support'));
         root.querySelector('[data-privacy]').addEventListener('click', privacySheet);
+        root.querySelector('[data-ai]').addEventListener('click', () => UI.go('#/ai'));
         root.querySelector('[data-ops]').addEventListener('click', () => UI.go('#/ops'));
         root.querySelector('[data-pilot]').addEventListener('click', () => UI.go('#/pilot'));
         root.querySelector('[data-reset]').addEventListener('click', () =>

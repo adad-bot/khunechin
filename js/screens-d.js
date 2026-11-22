@@ -17,6 +17,203 @@
     if (p) UI.go('#/projects');
   }
 
+  function aiCardHtml(p) {
+    const AI = K.AI;
+    const ai = p.ai || { status: 'idle' };
+    if (!AI.ready()) {
+      return `<div class="card tint mt-12">
+        <div class="card-title">${A.icon('spark', 18)} تصویر واقعی با هوش مصنوعی</div>
+        <p class="sub mt-4">برای اینکه عکس اتاقت واقعاً عوض شود، یک کلید سرویس تصویر لازم است. رایگان‌ترین راه، کلید Google AI Studio است.</p>
+        <div class="btn-row mt-8">
+          <button class="btn small" data-ai-settings>وصل‌کردن کلید</button>
+          <button class="btn secondary small" data-ai-help>چطور بگیرم؟</button>
+        </div>
+      </div>`;
+    }
+    if (ai.status === 'loading') {
+      return `<div class="card mt-12">
+        <div class="card-title">${A.icon('spark', 18)} در حال ساخت تصویر…</div>
+        <div class="progress mt-8"><i class="ai-bar" style="width:12%"></i></div>
+        <p class="sub mt-8">عکس اتاق برای ${UI.esc(AI.provider().name)} فرستاده می‌شود و معمولاً ۲۰ تا ۹۰ ثانیه طول می‌کشد. صفحه را نبند.</p>
+      </div>`;
+    }
+    if (ai.status === 'error') {
+      return `<div class="card warn mt-12">
+        <div class="card-title">${A.icon('info', 18)} تصویر ساخته نشد</div>
+        <p class="sub mt-4">${UI.esc(ai.error || '')}</p>
+        <div class="btn-row mt-8">
+          <button class="btn small" data-ai-retry>تلاش دوباره</button>
+          <button class="btn secondary small" data-ai-settings>تنظیمات کلید</button>
+        </div>
+      </div>`;
+    }
+    if (ai.status === 'done') {
+      return `<div class="card mt-12">
+        <div class="card-title" style="justify-content:space-between"><span>${A.icon('spark', 18)} ساخته‌شده با هوش مصنوعی</span><span class="badge ok">واقعی</span></div>
+        <p class="sub mt-4">این تصویر با ${UI.esc(AI.provider().name)} از عکس اتاق تو ساخته شده. با کشیدن انگشت روی تصویر، قبل و بعد را مقایسه کن.</p>
+        <div class="btn-row mt-8">
+          <button class="btn small" data-ai-retry>تولید دوباره</button>
+          <button class="btn secondary small" data-ai-refine>اصلاح با AI</button>
+        </div>
+        <button class="btn ghost small mt-8" data-ai-remove>حذف تصویر و بازگشت به طرح شماتیک</button>
+      </div>`;
+    }
+    return `<div class="card mt-12">
+      <div class="card-title">${A.icon('spark', 18)} تصویر واقعی از این اتاق</div>
+      <p class="sub mt-4">${AI.provider().name} آماده است. با زدن دکمه، عکس اتاق و خواستهٔ تو فرستاده می‌شود و تصویر تازه برمی‌گردد.</p>
+      <button class="btn mt-8" data-ai-run>ساخت تصویر با ${UI.esc(AI.provider().name)}</button>
+    </div>`;
+  }
+
+  UI.define('ai', function () {
+    const cfg = K.AI.config();
+    const html = `<div class="screen">
+      <header class="topbar">
+        <button class="iconbtn" data-back aria-label="بازگشت">${A.icon('back', 21)}</button>
+        <div class="tb-title">هوش مصنوعی تصویر</div>
+        <div class="tb-side">${K.AI.ready() ? '<span class="badge ok">وصل</span>' : '<span class="badge warn">وصل نیست</span>'}</div>
+      </header>
+      <div class="content">
+        <p class="sub">برای تغییر واقعی عکس، یک مدل تصویری لازم است. کلید فقط در همین گوشی ذخیره می‌شود و مستقیم به سرویس خودت می‌رود؛ هیچ سروری از ما در میان نیست.</p>
+
+        <h3 class="h3 mt-16">سرویس</h3>
+        <div class="stack-sm mt-8">
+          ${K.AI.providers
+            .map(
+              (pr) => `<button class="status-opt ${cfg.provider === pr.id ? 'is-on' : ''}" data-prov="${pr.id}">
+                <div style="min-width:0"><b>${pr.name}</b><div class="tiny">${pr.hint}</div><div class="tiny" style="direction:ltr;text-align:right;opacity:.75;word-break:break-all">${pr.model}</div></div>
+                <span class="so-radio">${cfg.provider === pr.id ? A.icon('check', 14) : ''}</span>
+              </button>`
+            )
+            .join('')}
+        </div>
+
+        <div class="field mt-16">
+          <span>کلید API</span>
+          <input class="input" id="aikey" type="password" dir="ltr" placeholder="کلید API را اینجا بچسبان" value="${UI.esc(cfg.key || '')}"/>
+        </div>
+        <div class="field mt-12">
+          <span>مدل (اختیاری)</span>
+          <input class="input" id="aimodel" dir="ltr" placeholder="${UI.esc(K.AI.provider().model)}" value="${UI.esc(cfg.model || '')}"/>
+        </div>
+        <div class="btn-row mt-12">
+          <button class="btn" data-save-key>ذخیره</button>
+          <button class="btn secondary" data-test-key>آزمایش کلید</button>
+        </div>
+        <p class="tiny mt-8">آزمایش از همین مرورگر انجام می‌شود؛ اگر VPN تو افزونهٔ مرورگر است، باید همان‌جا روشن باشد. اگر VPN کل ویندوز است، همین کافی است.</p>
+        <div class="field-err" id="aierr" hidden></div>
+        <div class="card tint mt-12" id="aiok" hidden><div class="tiny" id="aioktxt"></div></div>
+
+        <div class="card flat mt-16">
+          <div class="card-title">${A.icon('info', 18)} کلید را از کجا بگیرم؟</div>
+          <p class="sub mt-4"><b>OpenRouter</b> از ایران بدون VPN کار می‌کند و همان مدل‌های تصویری گوگل را دارد؛ فقط باید چند دلار شارژ کنی. <b>Gemini</b> رایگان است ولی از شبکهٔ ایران بسته است و VPN می‌خواهد. <b>OpenAI</b> پرداختی است.</p>
+          <div class="btn-row mt-8" style="flex-wrap:wrap">
+            <button class="btn secondary small" data-open-openrouter>کلید OpenRouter</button>
+            <button class="btn secondary small" data-open-gemini>کلید Gemini</button>
+            <button class="btn secondary small" data-open-openai>کلید OpenAI</button>
+          </div>
+        </div>
+
+        <div class="card flat mt-12">
+          <div class="card-title">${A.icon('lock', 18)} حریم خصوصی</div>
+          <p class="sub mt-4">با زدن دکمهٔ ساخت تصویر، عکس اتاقت به سرویس انتخاب‌شده فرستاده می‌شود. اگر نمی‌خواهی عکست جایی برود، از این بخش استفاده نکن؛ طرح شماتیک و پلان بدون ارسال عکس کار می‌کنند.</p>
+        </div>
+        <button class="btn ghost mt-12" data-clear-key>پاک‌کردن کلید</button>
+      </div>
+    </div>`;
+    return {
+      html,
+      mount(root) {
+        let provider = cfg.provider;
+        root.querySelectorAll('[data-prov]').forEach((b) =>
+          b.addEventListener('click', () => {
+            provider = b.getAttribute('data-prov');
+            root.querySelectorAll('[data-prov]').forEach((x) => x.classList.toggle('is-on', x === b));
+            root.querySelectorAll('.so-radio').forEach((r) => (r.innerHTML = ''));
+            b.querySelector('.so-radio').innerHTML = A.icon('check', 14);
+          })
+        );
+        root.querySelector('[data-save-key]').addEventListener('click', () => {
+          const key = root.querySelector('#aikey').value.trim();
+          const model = root.querySelector('#aimodel').value.trim();
+          const err = root.querySelector('#aierr');
+          if (!key) {
+            err.hidden = false;
+            err.textContent = 'کلید را وارد کن.';
+            return;
+          }
+          if (provider === 'gemini' && !/^(AIza|AQ\.)/.test(key)) {
+            err.hidden = false;
+            err.textContent = 'کلید Gemini با AIza یا AQ. شروع می‌شود؛ مطمئن شو کلید کامل کپی شده.';
+            return;
+          }
+          if (provider === 'openrouter' && !/^sk-or-/.test(key)) {
+            err.hidden = false;
+            err.textContent = 'کلید OpenRouter با sk-or- شروع می‌شود.';
+            return;
+          }
+          if (provider === 'openai' && !/^sk-/.test(key)) {
+            err.hidden = false;
+            err.textContent = 'کلید OpenAI با sk- شروع می‌شود.';
+            return;
+          }
+          err.hidden = true;
+          K.AI.setConfig({ provider, key, model });
+          UI.toast('کلید ذخیره شد.');
+          UI.refresh();
+        });
+        root.querySelector('[data-test-key]').addEventListener('click', async (ev) => {
+          const key = root.querySelector('#aikey').value.trim();
+          const model = root.querySelector('#aimodel').value.trim();
+          if (key) K.AI.setConfig({ provider, key, model });
+          const err = root.querySelector('#aierr');
+          const ok = root.querySelector('#aiok');
+          const txt = root.querySelector('#aioktxt');
+          ev.currentTarget.disabled = true;
+          ev.currentTarget.textContent = 'در حال آزمایش…';
+          try {
+            const r = await K.AI.testKey();
+            err.hidden = true;
+            ok.hidden = false;
+            txt.textContent =
+              r.credit != null
+                ? 'کلید سالم است؛ اعتبار باقی‌مانده: $' + r.credit
+                : 'کلید سالم است؛ ' + E.fa(r.models) + ' مدل در دسترس' + (r.imageModel ? ' و مدل تصویر پیدا شد.' : '.');
+            if (r.models && !r.imageModel) txt.textContent += ' اگر تصویر ساخته نشد، نام مدل را در کادر بالا بگذار.';
+          } catch (e) {
+            ok.hidden = true;
+            err.hidden = false;
+            err.textContent = K.AI.errorText(e);
+          } finally {
+            ev.currentTarget.disabled = false;
+            ev.currentTarget.textContent = 'آزمایش کلید';
+          }
+        });
+        root.querySelector('[data-open-gemini]').addEventListener('click', () =>
+          window.open('https://aistudio.google.com/apikey', '_blank', 'noopener')
+        );
+        root.querySelector('[data-open-openrouter]').addEventListener('click', () =>
+          window.open('https://openrouter.ai/keys', '_blank', 'noopener')
+        );
+        root.querySelector('[data-open-openai]').addEventListener('click', () =>
+          window.open('https://platform.openai.com/api-keys', '_blank', 'noopener')
+        );
+        root.querySelector('[data-clear-key]').addEventListener('click', () =>
+          UI.confirmSheet({
+            title: 'کلید پاک شود؟',
+            sub: 'بعد از پاک‌کردن، ساخت تصویر با AI کار نمی‌کند.',
+            confirm: 'پاک کن',
+            danger: true,
+            onConfirm() {
+              K.AI.clear();
+              UI.refresh();
+            },
+          })
+        );
+      },
+    };
+  });
+
   /* ================= نتیجه ================= */
   UI.define('result', function (ctx) {
     const p = S.byId(ctx.id) || S.active();
@@ -27,7 +224,10 @@
     }
     let focus = null;
     const scheme = S.activeScheme(p) || p.schemes[0];
+    const ai = p.ai || { status: 'idle' };
+    const aiImage = ai.status === 'done' && ai.image ? ai.image : null;
     const before = UI.isSamplePhoto(p) ? UI.sceneHtml(p, null, 'rs-b') : `<img src="${UI.mainPhoto(p).dataUrl}" alt="عکس فعلی"/>`;
+    const afterHtml = aiImage ? `<img src="${aiImage}" alt="طرح هوش مصنوعی"/>` : UI.afterHtml(p, scheme);
 
     const html = `<div class="screen">
       <header class="topbar">
@@ -46,7 +246,7 @@
             )
             .join('')}
         </div>
-        <div class="mt-8" id="compareHost">${UI.compareHtml(before, UI.afterHtml(p, scheme), { ratio: 50 })}</div>
+        <div class="mt-8" id="compareHost">${UI.compareHtml(before, afterHtml, { ratio: 50 })}</div>
         <div class="compare-tools">
           <div class="seg" data-layer-toggle>
             <button type="button" data-lay="before">عکس فعلی</button>
@@ -55,7 +255,7 @@
           <span class="spacer"></span>
           <button class="chip" data-guide>${A.icon('ruler', 16)} راهنمای اجرا</button>
         </div>
-        ${UI.isSamplePhoto(p) ? '<p class="tiny mt-8">این نمونه با تصویرسازی برداری ساخته شده؛ برای عکس خودت، طرح به‌صورت شماتیک روی عکس نشان داده می‌شود.</p>' : '<p class="tiny mt-8">طرح روی عکس تو شماتیک است؛ تولید تصویر واقع‌گرایانه به سرویس تصویر نیاز دارد.</p>'}
+        ${aiCardHtml(p)}
 
         <div class="card mt-12">
           <div class="card-title" style="justify-content:space-between"><span>${UI.esc(scheme.title)}</span><span class="badge ok">${scheme.tag}</span></div>
@@ -115,13 +315,17 @@
         <div class="card mt-12" style="padding:4px 14px">
           <div class="row" data-plan-row><div class="ico-lead">${A.icon('grid', 18)}</div><div class="row-main"><div class="row-title">پلان و اندازه</div><div class="row-sub">جای فعلی و مقصد، اندازه‌های لازم</div></div><div class="row-side">${A.icon('next', 18)}</div></div>
           <div class="row" data-guide><div class="ico-lead">${A.icon('ruler', 18)}</div><div class="row-main"><div class="row-title">راهنمای اجرا</div><div class="row-sub">جابه‌جایی، اندازه‌گیری، خرید اختیاری</div></div><div class="row-side">${A.icon('next', 18)}</div></div>
-          <div class="row" data-refine><div class="ico-lead">${A.icon('edit', 18)}</div><div class="row-main"><div class="row-title">اصلاح موضعی</div><div class="row-sub">${p.refineCredits ? E.fa(p.refineCredits) + ' سهم اصلاح باقی مانده' : 'سهم اصلاح تمام شده'}</div></div><div class="row-side">${A.icon('next', 18)}</div></div>
+          <div class="row" data-refine><div class="ico-lead">${A.icon('edit', 18)}</div><div class="row-main"><div class="row-title">اصلاح موضعی</div><div class="row-sub">${K.AI.ready() ? 'با هوش مصنوعی، روی همین تصویر' : 'سهم اصلاح بسته'}</div></div><div class="row-side">${A.icon('next', 18)}</div></div>
           <div class="row" data-history><div class="ico-lead">${A.icon('rotate', 18)}</div><div class="row-main"><div class="row-title">تاریخچهٔ نسخه‌ها</div><div class="row-sub">${E.fa(p.history.filter((h) => h.status === 'ok').length)} نسخه</div></div><div class="row-side">${A.icon('next', 18)}</div></div>
         </div>
-
-        ${purchaseCard(p, scheme)}
       </div>
-      ${packageBar(p, scheme)}
+      <div class="actions">
+        <div class="btn-row">
+          <button class="btn secondary" data-guide>راهنمای اجرا</button>
+          <button class="btn" data-ai-top>${aiImage ? 'تولید تصویر تازه' : 'ساخت تصویر با AI'}</button>
+        </div>
+        <div class="meta">${aiImage ? 'تصویر ساخته‌شده با ' + K.AI.provider().name : 'بدون کلید، طرح شماتیک نمایش داده می‌شود'}</div>
+      </div>
     </div>`;
 
     return {
@@ -156,7 +360,8 @@
             root.querySelectorAll('[data-change]').forEach((x) => x.classList.toggle('is-active', x === b));
             const host = root.querySelector('#compareHost');
             if (host && c) {
-              host.innerHTML = UI.compareHtml(UI.isSamplePhoto(p) ? UI.sceneHtml(p, null, 'rs-b2') : before, UI.afterHtml(p, scheme), { ratio: 50 });
+              const afterNow = aiImage ? `<img src="${aiImage}" alt="طرح هوش مصنوعی"/>` : UI.afterHtml(p, scheme);
+              host.innerHTML = UI.compareHtml(UI.isSamplePhoto(p) ? UI.sceneHtml(p, null, 'rs-b2') : before, afterNow, { ratio: 50 });
               UI.bindCompare(root);
               host.scrollIntoView({ behavior: 'smooth', block: 'center' });
               const legend = host.querySelector('.layer.after');
@@ -177,11 +382,47 @@
         root.querySelectorAll('[data-guide]').forEach((b) => b.addEventListener('click', () => UI.go('#/guide/' + p.id)));
         root.querySelector('[data-plan-row]').addEventListener('click', () => UI.go('#/plan/' + p.id));
         root.querySelector('[data-refine]').addEventListener('click', () => {
+          if (K.AI.ready() && p.ai && p.ai.image) return UI.go('#/refine/' + p.id);
           if (!p.refineCredits) return UI.toast('سهم اصلاح این بسته تمام شده است.');
           UI.go('#/refine/' + p.id);
         });
         root.querySelector('[data-history]').addEventListener('click', () => historySheet(p));
         root.querySelector('[data-menu]').addEventListener('click', () => resultMenu(p));
+
+        // ——— هوش مصنوعی تصویر ———
+        const runAI = async () => {
+          if (!K.AI.ready()) return UI.go('#/ai');
+          p.ai = { status: 'loading', image: (p.ai && p.ai.image) || null, at: S.now() };
+          S.touch(p);
+          UI.render();
+          try {
+            const raw = await K.AI.generate(p);
+            const img = await K.AI.shrink(raw, 1100, 0.85);
+            p.ai = { status: 'done', image: img, at: S.now(), provider: K.AI.provider().id };
+            S.track('ai_generated', { projectId: p.id });
+            S.touch(p);
+            UI.render();
+            UI.toast('تصویر ساخته شد؛ انگشتت را روی تصویر بکش.');
+          } catch (e) {
+            p.ai = { status: 'error', error: K.AI.errorText(e), at: S.now(), image: null };
+            S.touch(p);
+            UI.render();
+          }
+        };
+        root.querySelectorAll('[data-ai-run],[data-ai-retry],[data-ai-top]').forEach((b) => b.addEventListener('click', runAI));
+        const aiSet = root.querySelector('[data-ai-settings]');
+        if (aiSet) aiSet.addEventListener('click', () => UI.go('#/ai'));
+        const aiRefine = root.querySelector('[data-ai-refine]');
+        if (aiRefine) aiRefine.addEventListener('click', () => UI.go('#/refine/' + p.id));
+        const aiRemove = root.querySelector('[data-ai-remove]');
+        if (aiRemove)
+          aiRemove.addEventListener('click', () => {
+            p.ai = { status: 'idle' };
+            S.touch(p);
+            UI.render();
+          });
+        const aiHelp = root.querySelector('[data-ai-help]');
+        if (aiHelp) aiHelp.addEventListener('click', () => aiHelpSheet());
         const fix = root.querySelector('[data-fix-lock]');
         if (fix)
           fix.addEventListener('click', () => {
@@ -194,6 +435,23 @@
       },
     };
   });
+
+  function aiHelpSheet() {
+    UI.sheet({
+      title: 'کلید تصویر از کجا؟',
+      sub: 'Gemini رایگان است ولی از ایران VPN می‌خواهد؛ OpenRouter بدون VPN کار می‌کند و شارژ می‌خواهد.',
+      html: `<div class="stack-sm mt-8">
+        <div class="card flat"><b>۱. گرفتن کلید</b><p class="sub">OpenRouter: با حساب گوگل یا گیت‌هاب وارد شو، در Credits چند دلار شارژ کن و کلید بساز. Gemini: در AI Studio دکمهٔ Get API key. هر دو با حساب گوگل ممکن است.</p></div>
+        <div class="card flat"><b>۲. گذاشتن کلید در اپ</b><p class="sub">حساب من ← تصویر با هوش مصنوعی ← سرویس را انتخاب کن ← کلید را بچسبان ← ذخیره ← آزمایش کلید.</p></div>
+        <div class="card flat"><b>۳. ساخت تصویر</b><p class="sub">در صفحهٔ نتیجه، دکمهٔ «ساخت تصویر با AI» عکس اتاق را می‌فرستد و تصویر تازه برمی‌گردد.</p></div>
+      </div>`,
+      mount(el) {
+        el.querySelector('[data-open-gemini]').addEventListener('click', () =>
+          window.open('https://aistudio.google.com/apikey', '_blank', 'noopener')
+        );
+      },
+    });
+  }
 
   function historySheet(p) {
     UI.sheet({
@@ -352,7 +610,7 @@
           <p class="sub mt-4">نسخهٔ تازه منتشر نمی‌شود و از سهم اصلاح تو کم نمی‌شود.</p>
         </div>
       </div>
-      <div class="actions"><button class="btn" data-do ${p.refineCredits ? '' : 'disabled'}>ثبت اصلاح</button><div class="meta">${p.refineCredits ? 'این اصلاح از سهم بسته مصرف می‌شود.' : 'سهم اصلاح تمام شده است.'}</div></div>
+      <div class="actions"><button class="btn" data-do>ثبت اصلاح</button><div class="meta">${K.AI.ready() && p.ai && p.ai.image ? 'روی تصویر هوش مصنوعی اعمال می‌شود' : 'این اصلاح از سهم بسته مصرف می‌شود.'}</div></div>
     </div>`;
     return {
       html,
@@ -372,7 +630,34 @@
         );
         const ta = root.querySelector('#rprompt');
         ta.addEventListener('input', () => (prompt = ta.value));
-        root.querySelector('[data-do]').addEventListener('click', () => {
+        root.querySelector('[data-do]').addEventListener('click', async () => {
+          // اگر تصویر هوش مصنوعی داریم، اصلاح روی همان تصویر انجام می‌شود
+          if (K.AI.ready() && p.ai && p.ai.image) {
+            const base = p.ai.image;
+            UI.sheet({
+              title: 'در حال اصلاح تصویر…',
+              sub: 'این کار ۲۰ تا ۹۰ ثانیه طول می‌کشد.',
+              html: `<div class="progress mt-12"><i class="ai-bar" style="width:15%"></i></div>`,
+            });
+            try {
+              const raw = await K.AI.generate(p, { image: base, prompt: K.AI.buildPrompt(p, prompt) });
+              const img = await K.AI.shrink(raw, 1100, 0.85);
+              p.ai = { status: 'done', image: img, at: S.now(), provider: K.AI.provider().id };
+              p.history.push({ id: 'h_' + Date.now().toString(36), label: 'اصلاح با AI: ' + prompt, at: S.now(), status: 'ok', schemeId: p.activeSchemeId });
+              S.touch(p);
+              UI.closeSheet();
+              UI.go('#/result/' + p.id);
+              UI.toast('تصویر اصلاح شد.');
+            } catch (e) {
+              UI.closeSheet();
+              UI.sheet({
+                title: 'اصلاح انجام نشد',
+                sub: K.AI.errorText(e),
+                html: '<button class="btn mt-12" data-close>باشه</button>',
+              });
+            }
+            return;
+          }
           const res = S.refine(p, { itemId: target, prompt: prompt, label: prompt });
           if (!res.ok) {
             UI.sheet({
@@ -826,9 +1111,8 @@
     { e: 'design_started', label: 'درخواست ساخت ثبت شد' },
     { e: 'preview_ready', label: 'طرح آماده شد' },
     { e: 'preview_viewed', label: 'طرح دیده شد' },
+    { e: 'ai_generated', label: 'تصویر با AI ساخته شد' },
     { e: 'scheme_selected', label: 'طرح انتخاب شد' },
-    { e: 'purchase_started', label: 'خرید شروع شد' },
-    { e: 'purchase_completed', label: 'خرید انجام شد' },
     { e: 'task_done', label: 'دست‌کم یک کار اجرا شد' },
   ];
 
@@ -886,7 +1170,7 @@
 
         <div class="card flat mt-12">
           <div class="card-title">${A.icon('info', 18)} این عددها چه می‌گویند</div>
-          <p class="sub mt-4">از هر ${E.fa(st.total || 0)} پروژه، ${E.fa(st.rows[3].count)} تا به طرح رسیده و ${E.fa(st.rows[7].count)} تا خریده‌اند. اگر «طرح دیده شد» از «طرح آماده شد» کمتر باشد، یعنی پردازش تمام می‌شود ولی کاربر خبردار نمی‌شود؛ اگر «انتخاب طرح» کم باشد، طرح‌ها به هدف نزدیک نیستند.</p>
+          <p class="sub mt-4">از هر ${E.fa(st.total || 0)} پروژه، ${E.fa(st.rows[3].count)} تا به طرح رسیده و ${E.fa(st.rows[5].count)} تا تصویر هوش مصنوعی گرفته‌اند. اگر «طرح دیده شد» از «طرح آماده شد» کمتر باشد، یعنی پردازش تمام می‌شود ولی کاربر خبردار نمی‌شود؛ اگر «تصویر با AI» کم باشد، مشکل کلید یا کیفیت تصویر است.</p>
         </div>
 
         <div class="card flat mt-12">

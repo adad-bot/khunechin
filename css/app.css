@@ -2009,3 +2009,15 @@ body {
   width: 32px;
   height: 32px;
 }
+
+/* ---------- هوش مصنوعی ---------- */
+.ai-bar {
+  animation: aiPulse 1.6s ease-in-out infinite;
+  background: linear-gradient(90deg, var(--primary), #6f9c85, var(--primary));
+  background-size: 200% 100%;
+}
+@keyframes aiPulse {
+  0% { opacity: 0.55; background-position: 0% 0; }
+  50% { opacity: 1; background-position: 100% 0; }
+  100% { opacity: 0.55; background-position: 0% 0; }
+}
