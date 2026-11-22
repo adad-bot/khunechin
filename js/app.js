@@ -58,9 +58,19 @@
       window.addEventListener('hashchange', () => setTimeout(sync, 60));
     }
 
-    // نصب به‌عنوان اپ (PWA) — فقط روی http/https
-    if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !/[?&]nosw=1/.test(location.search)) {
-      navigator.serviceWorker.register('sw.js?rev=1').catch(() => {});
+    // نصب به‌عنوان اپ (PWA) — فقط در مرورگر، نه داخل APK
+    const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    if (isNative) {
+      // پاک‌کردن کش قدیمی نسخه‌های قبل تا فایل‌های تازه APK دیده شوند
+      try {
+        if (navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister()));
+        if (window.caches) caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+      } catch (e) {}
+    } else if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !/[?&]nosw=1/.test(location.search)) {
+      navigator.serviceWorker
+        .register('sw.js?rev=3', { updateViaCache: 'none' })
+        .then((reg) => reg.update().catch(() => {}))
+        .catch(() => {});
     }
 
     // دسترسی برای آزمون خودکار

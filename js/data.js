@@ -7,7 +7,7 @@
   D.app = {
     name: 'خونه‌چین',
     tagline: 'قبل از خرج‌کردن، ببین کدام تغییر واقعاً برای خانه‌ات ارزش دارد.',
-    version: 'نسخهٔ ۰٫۹',
+    version: 'نسخهٔ ۰٫۱۰',
     packagePrice: 149000,
     refineCredits: 1,
   };
