@@ -1,0 +1,17 @@
+{
+  "name": "خونه‌چین — طراحی و چیدمان داخلی",
+  "short_name": "خونه‌چین",
+  "description": "قبل از خرج‌کردن، نتیجهٔ چیدمان و تغییر دکور را در عکس خانهٔ خودت ببین.",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F4ED",
+  "theme_color": "#285542",
+  "icons": [
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "assets/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
