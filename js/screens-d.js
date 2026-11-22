@@ -41,6 +41,8 @@
       return `<div class="card warn mt-12">
         <div class="card-title">${A.icon('info', 18)} تصویر ساخته نشد</div>
         <p class="sub mt-4">${UI.esc(ai.error || '')}</p>
+        ${ai.raw ? `<details class="mt-8"><summary class="tiny">جزئیات فنی</summary><pre dir="ltr" style="white-space:pre-wrap;word-break:break-all;font-size:10px;background:#fff;border-radius:8px;padding:8px;margin-top:6px">${UI.esc(ai.raw)}</pre>
+          <button class="chip mt-8" data-copy-raw>کپی جزئیات</button></details>` : ''}
         <div class="btn-row mt-8">
           <button class="btn small" data-ai-retry>تلاش دوباره</button>
           <button class="btn secondary small" data-ai-settings>تنظیمات کلید</button>
@@ -404,7 +406,7 @@
             UI.render();
             UI.toast('تصویر ساخته شد؛ انگشتت را روی تصویر بکش.');
           } catch (e) {
-            p.ai = { status: 'error', error: K.AI.errorText(e), at: S.now(), image: null };
+            p.ai = { status: 'error', error: K.AI.errorText(e), raw: (e && e.raw) || String(e && e.message) || '', at: S.now(), image: null };
             S.touch(p);
             UI.render();
           }
@@ -423,6 +425,17 @@
           });
         const aiHelp = root.querySelector('[data-ai-help]');
         if (aiHelp) aiHelp.addEventListener('click', () => aiHelpSheet());
+        const copyRaw = root.querySelector('[data-copy-raw]');
+        if (copyRaw)
+          copyRaw.addEventListener('click', async () => {
+            const txt = (p.ai && p.ai.raw) || '';
+            try {
+              await navigator.clipboard.writeText(txt);
+              UI.toast('جزئیات کپی شد؛ برایم بفرست.');
+            } catch (e) {
+              UI.toast('کپی نشد؛ از صفحه عکس بگیر.');
+            }
+          });
         const fix = root.querySelector('[data-fix-lock]');
         if (fix)
           fix.addEventListener('click', () => {

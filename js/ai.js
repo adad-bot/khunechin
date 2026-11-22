@@ -273,30 +273,55 @@
   async function generateGemini(cfg, prompt, before) {
     const model = cfg.model || 'gemini-2.5-flash-image';
     const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent?key=' + encodeURIComponent(cfg.key);
-    const body = {
+    const base = {
       contents: [
         {
           role: 'user',
           parts: [{ text: prompt }, { inline_data: { mime_type: mimeOf(before), data: toBase64(before) } }],
         },
       ],
-      generationConfig: { responseModalities: ['IMAGE'] },
     };
-    const res = await withTimeout(
-      fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
-      180000
-    );
-    const text = await res.text();
-    if (!res.ok) {
-      if (/^\s*</.test(text)) throw new Error('blocked');
-      throw new Error(res.status + ' ' + text.slice(0, 200));
+
+    async function call(body) {
+      const res = await withTimeout(
+        fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
+        180000
+      );
+      const text = await res.text();
+      return { ok: res.ok, status: res.status, text };
     }
-    const json = JSON.parse(text);
-    const parts = (((json.candidates || [])[0] || {}).content || {}).parts || [];
-    const img = parts.map((p) => p.inlineData || p.inline_data).find((x) => x && x.data);
+
+    let r = await call(base);
+    if (!r.ok) {
+      if (/^\s*</.test(r.text)) throw new Error('blocked');
+      const e = new Error('HTTP ' + r.status + ' · ' + r.text.slice(0, 300));
+      e.raw = 'HTTP ' + r.status + '\n' + r.text.slice(0, 800);
+      throw e;
+    }
+    let json = JSON.parse(r.text);
+    let parts = (((json.candidates || [])[0] || {}).content || {}).parts || [];
+    let img = parts.map((p) => p.inlineData || p.inline_data).find((x) => x && x.data);
+
+    if (!img) {
+      // اگر تصویری برنگشت، یک بار با تنظیم حالت خروجی دوباره امتحان کن
+      r = await call(Object.assign({}, base, { generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } }));
+      if (!r.ok) {
+        if (/^\s*</.test(r.text)) throw new Error('blocked');
+        const e = new Error('HTTP ' + r.status + ' · ' + r.text.slice(0, 300));
+        e.raw = 'HTTP ' + r.status + '\n' + r.text.slice(0, 800);
+        throw e;
+      }
+      json = JSON.parse(r.text);
+      parts = (((json.candidates || [])[0] || {}).content || {}).parts || [];
+      img = parts.map((p) => p.inlineData || p.inline_data).find((x) => x && x.data);
+    }
+
     if (!img) {
       const said = parts.map((p) => p.text).filter(Boolean).join(' ');
-      throw new Error(said || 'تصویری در پاسخ نبود.');
+      const reason = (json.candidates && json.candidates[0] && json.candidates[0].finishReason) || '';
+      const e = new Error(said || 'تصویری در پاسخ نبود. ' + reason);
+      e.raw = 'finishReason: ' + reason + '\n' + r.text.slice(0, 800);
+      throw e;
     }
     return 'data:' + (img.mimeType || img.mime_type || 'image/png') + ';base64,' + img.data;
   }
