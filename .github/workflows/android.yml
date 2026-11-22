@@ -30,6 +30,23 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
+      # امضای ثابت: بدون این، هر بیلد کلید تازه می‌گیرد و آپدیت روی نسخهٔ قبلی نصب نمی‌شود
+      - name: Restore keystore
+        uses: actions/cache@v4
+        with:
+          path: android/khunechin.keystore
+          key: khunechin-keystore-v1
+
+      - name: Create keystore if missing
+        working-directory: android
+        run: |
+          if [ ! -f khunechin.keystore ]; then
+            keytool -genkeypair -v -keystore khunechin.keystore -alias khunechin \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass khunechin -keypass khunechin \
+              -dname "CN=Khunechin, O=Khunechin, C=IR"
+          fi
+
       - name: Sync web assets
         run: npx cap sync android
 
@@ -39,7 +56,18 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
+      - name: Sign with stable key
+        run: |
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          OUT=android/app/build/outputs/apk/debug/khunechin.apk
+          $BT/zipalign -f 4 "$APK" android/app/build/outputs/apk/debug/aligned.apk
+          $BT/apksigner sign --ks android/khunechin.keystore \
+            --ks-pass pass:khunechin --key-pass pass:khunechin \
+            --out "$OUT" android/app/build/outputs/apk/debug/aligned.apk
+          $BT/apksigner verify --print-certs "$OUT" | head -5
+
       - uses: actions/upload-artifact@v4
         with:
           name: khunechin-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/khunechin.apk
